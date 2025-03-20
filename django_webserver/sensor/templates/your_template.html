@@ -1,0 +1,5 @@
+<form method="POST" action="/sensor/receive/">
+    {% csrf_token %}
+    <input type="text" name="sensor_value" value="1234">
+    <input type="submit" value="Submit">
+</form>
