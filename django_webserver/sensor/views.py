@@ -54,7 +54,7 @@ def receive_sensor_data(request):
 
     return JsonResponse({'status': 'failure', 'message': 'Method not allowed'}, status=405)
 
-# 홈 페이지 뷰
+# 홈 페이지 뷰 sdf sdfw ef
 def home(request):
     return HttpResponse("Hello from the main page!")
 
