@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data</title>
+</head>
+<body>
+    <h1>Sensor Data</h1>
+    <table border="1">
+        <tr>
+            <th>Device</th>
+            <th>Sensor Value</th>
+            <th>Timestamp</th>
+        </tr>
+        {% for data in sensor_data %}
+        <tr>
+            <td>{{ data.device }}</td>
+            <td>{{ data.sensor_value }}</td>
+            <td>{{ data.timestamp }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
