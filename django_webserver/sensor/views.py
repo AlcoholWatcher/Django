@@ -1,12 +1,10 @@
-# sensor/views.py
+from django.shortcuts import render
+
+# 기존 뷰들
 from django.http import JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt
 import json
-
-# 홈 페이지 뷰
-def home(request):
-    return HttpResponse("Hello from the main page!")
 
 # CSRF 토큰을 반환하는 뷰
 @csrf_exempt
@@ -14,7 +12,7 @@ def get_csrf_token(request):
     csrf_token = get_token(request)
     return JsonResponse({'csrf_token': csrf_token})
 
-# 데이터 수신을 처리하는 뷰
+# CSRF 보호 해제 → ESP32에서 POST 요청 가능
 @csrf_exempt  # CSRF 보호 해제
 def receive_sensor_data(request):
     if request.method == 'POST':
@@ -28,7 +26,7 @@ def receive_sensor_data(request):
 
             # JSON 파싱
             data = json.loads(request.body)
-            
+
             # 센서 값 추출
             sensor_value = data.get('sensor_value')
 
@@ -55,3 +53,9 @@ def receive_sensor_data(request):
             return JsonResponse({'status': 'failure', 'message': 'Invalid JSON'}, status=400)
 
     return JsonResponse({'status': 'failure', 'message': 'Method not allowed'}, status=405)
+
+# 홈 페이지 뷰
+def home(request):
+    return HttpResponse("Hello from the main page!")
+
+# index 뷰 추가
