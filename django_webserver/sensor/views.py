@@ -19,31 +19,30 @@ def receive_sensor_data(request):
             return JsonResponse({'status': 'failure', 'message': 'Empty request body'}, status=400)
 
         try:
-            # 요청 본문을 JSON으로 파싱
             data = json.loads(request.body)
             sensor_value = data.get('sensor_value')
             device = data.get('device')
 
-            # 필수 데이터 확인
             if sensor_value is None or device is None:
                 return JsonResponse({'status': 'failure', 'message': 'No sensor_value or device provided'}, status=400)
 
-            # 데이터베이스에 저장
-            SensorData.objects.create(device=device, sensor_value=sensor_value)
+            # 이전 최신 데이터의 is_latest를 False로 업데이트
+            SensorData.objects.filter(device=device, is_latest=True).update(is_latest=False)
 
-            # 성공 응답
+            # 새로운 데이터 저장
+            SensorData.objects.create(device=device, sensor_value=sensor_value, is_latest=True)
+
             return JsonResponse({'status': 'success', 'sensor_value': sensor_value})
 
         except json.JSONDecodeError:
             return JsonResponse({'status': 'failure', 'message': 'Invalid JSON'}, status=400)
 
     return JsonResponse({'status': 'failure', 'message': 'Method not allowed'}, status=405)
-
 # 홈 페이지 뷰
 def home(request):
     return HttpResponse("Hello from the main page!")
 
 # 데이터 리스트를 표시하는 뷰
 def data_list(request):
-    sensor_data = SensorData.objects.all()  # 모든 센서 데이터 가져오기
+    sensor_data = SensorData.objects.filter(is_latest=True)  # 최신 데이터만 가져옵니다.
     return render(request, 'sensor/data_list.html', {'sensor_data': sensor_data})
