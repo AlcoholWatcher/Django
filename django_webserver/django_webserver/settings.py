@@ -29,7 +29,11 @@ ALLOWED_HOSTS = ['192.168.100.181', 'localhost', '127.0.0.1']
 
 APPEND_SLASH = True
 # Application definition
-
+CSRF_TRUSTED_ORIGINS = [
+    "http://192.168.100.181:8000",  # 서버의 IP
+    "http://192.168.100.235",  # 노트북
+    "http://192.168.100.178" #ESP32
+]
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -39,12 +43,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'sensor',
 ]
-
+CSRF_COOKIE_NAME = "csrftoken"
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',  # 중복 제거
+    # 'django.middleware.csrf.CsrfViewMiddleware',  # 🔥 CSRF 보호 임시로 끄기
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
