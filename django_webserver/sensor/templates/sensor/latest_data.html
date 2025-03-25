@@ -1,26 +1,201 @@
-django_webserver\sensor\templates\sensor\latest_data.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Latest Sensor Data</title>
+    <title>Real Time Sensor Data</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #eaeaea; /* 배경색 변경 */
+            margin: 0;
+            padding: 20px;
+        }
+        h1 {
+            color: #444;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); /* 텍스트 그림자 */
+        }
+        .sensor-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1600px; /* 최대 너비 조정 */
+            margin: 20px 0;
+        }
+        .sensor-data {
+            border: none; /* 테두리 없음 */
+            border-radius: 12px; /* 모서리 둥글게 */
+            padding: 20px;
+            margin: 10px;
+            width: 32%; /* 각 센서 섹션의 너비 */
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1); /* 부드러운 그림자 */
+            height: 400px; /* 각 섹션의 높이 */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            text-align: center; /* 텍스트 중앙 정렬 */
+            background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%); /* 그라데이션 배경 */
+            transition: transform 0.3s; /* 호버 효과를 위한 전환 */
+        }
+        .sensor-data:hover {
+            transform: translateY(-5px); /* 호버 시 위로 이동 */
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); /* 호버 시 그림자 효과 증가 */
+        }
+        .sensor-data h2 {
+            color: #333; /* 제목 색상 */
+            margin-bottom: 15px;
+            font-weight: 700; /* 두껍게 */
+        }
+        .sensor-data p {
+            font-size: 18px; /* 글자 크기 */
+            margin: 5px 0; /* 위아래 여백 */
+            color: #555; /* 본문 색상 */
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 250px; /* 차트의 최대 높이 */
+            margin-top: 15px; /* 차트와 텍스트 간의 여백 */
+            border-radius: 8px; /* 차트 둥글게 */
+            background-color: #fff; /* 차트 배경색 */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* 차트 그림자 */
+        }
+    </style>
 </head>
 <body>
-    <h1>Latest Sensor Data</h1>
-    <table border="1">
-        <tr>
-            <th>Device</th>
-            <th>Value</th>
-            <th>Timestamp</th>
-        </tr>
-        {% for data in latest_data %}
-        <tr>
-            <td>{{ data.device }}</td>
-            <td>{{ data.sensor_value }}</td>
-            <td>{{ data.timestamp }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+    <h1>Real Time Sensor Data Monitoring</h1>
+
+    <div class="sensor-container">
+        <div class="sensor-data">
+            <h2>Alcohol Sensor Data</h2>
+            <p>Value: <span id="alcoholValue">{{ latest_data.alcohol }}</span></p>
+            <p>Timestamp: <span id="alcoholTimestamp">{{ latest_data.timestamp }}</span></p>
+            <canvas id="alcoholChart"></canvas>
+        </div>
+
+        <div class="sensor-data">
+            <h2>Gyro Sensor Data</h2>
+            <p>Value: <span id="gyroValue">{{ latest_data.gyro }}</span></p>
+            <p>Timestamp: <span id="gyroTimestamp">{{ latest_data.timestamp }}</span></p>
+            <canvas id="gyroChart"></canvas>
+        </div>
+
+        <div class="sensor-data">
+            <h2>Motor Speed</h2>
+            <p>Value: <span id="motorSpeedValue">{{ latest_data.motor_speed }}</span></p>
+            <p>Timestamp: <span id="motorSpeedTimestamp">{{ latest_data.timestamp }}</span></p>
+            <canvas id="motorSpeedChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // 차트 초기화
+        const alcoholCtx = document.getElementById('alcoholChart').getContext('2d');
+        const gyroCtx = document.getElementById('gyroChart').getContext('2d');
+        const motorSpeedCtx = document.getElementById('motorSpeedChart').getContext('2d');
+
+        const alcoholChart = new Chart(alcoholCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Alcohol Value',
+                    data: [],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const gyroChart = new Chart(gyroCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Gyro Value',
+                    data: [],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        const motorSpeedChart = new Chart(motorSpeedCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Motor Speed',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // AJAX를 통해 데이터 업데이트
+        function updateCharts() {
+            fetch('/sensor/get-latest-data/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 값 업데이트
+                        document.getElementById('alcoholValue').innerText = data.alcohol;
+                        document.getElementById('alcoholTimestamp').innerText = data.timestamp;
+
+                        document.getElementById('gyroValue').innerText = data.gyro;
+                        document.getElementById('gyroTimestamp').innerText = data.timestamp;
+
+                        document.getElementById('motorSpeedValue').innerText = data.motor_speed;
+                        document.getElementById('motorSpeedTimestamp').innerText = data.timestamp;
+
+                        // 차트 데이터 업데이트
+                        const timestamp = new Date(data.timestamp).toLocaleTimeString();
+                        alcoholChart.data.labels.push(timestamp);
+                        alcoholChart.data.datasets[0].data.push(data.alcohol);
+                        alcoholChart.update();
+
+                        gyroChart.data.labels.push(timestamp);
+                        gyroChart.data.datasets[0].data.push(data.gyro);
+                        gyroChart.update();
+
+                        motorSpeedChart.data.labels.push(timestamp);
+                        motorSpeedChart.data.datasets[0].data.push(data.motor_speed);
+                        motorSpeedChart.update();
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        }
+
+        // 5초마다 데이터 업데이트
+        setInterval(updateCharts, 1000);
+    </script>
 </body>
 </html>
