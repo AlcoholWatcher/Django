@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 import json
 from .models import SensorData  # SensorData 모델 임포트
 from django.utils import timezone
@@ -70,6 +71,7 @@ def get_latest_sensor_data(request):
 
 # 최신 센서 데이터를 반환하는 뷰
 @csrf_exempt
+@require_http_methods(["POST"]) 
 def get_sensor_data(request):
     if request.method == 'GET':
         latest_data = SensorData.objects.filter(is_latest=True).order_by('-timestamp').first()
