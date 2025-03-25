@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 import json
 from .models import SensorData  # SensorData 모델 임포트
 from django.utils import timezone
+from datetime import timedelta
 import pytz
 # CSRF 토큰을 반환하는 뷰
 @csrf_exempt
@@ -55,14 +56,26 @@ def get_latest_sensor_data(request):
         if latest_data:
             # 한국 시간대 설정
             kst = pytz.timezone('Asia/Seoul')
-            timestamp = latest_data.timestamp.astimezone(kst).strftime('%m-%d %H:%M:%S')  # 24시간 형식
+            timestamp = latest_data.timestamp.astimezone(kst).strftime('%H:%M:%S')  # 24시간 형식
+            
+            # 자이로 센서 값으로 음주운전 상태 판단
+            gyro_threshold = 10
+            gyro_count = SensorData.objects.filter(
+                device=latest_data.device,
+                gyro__gte=gyro_threshold,
+                timestamp__gte=latest_data.timestamp - timedelta(seconds=30)  # 최근 30초 동안의 데이터를 확인
+            ).count()  # 최근 30초 동안 자이로 값이 4 이상인 횟수
+
+            is_drunk_driving = gyro_count >= 10  # 3회 이상이면 음주운전 상태로 판단
+            
             return JsonResponse({
                 'status': 'success',
                 'alcohol': latest_data.alcohol,
                 'gyro': latest_data.gyro,
                 'motor_speed': latest_data.motor_speed,
-                'timestamp': timestamp  # 포맷된 타임스탬프 반환
-            })
+                'timestamp': timestamp,  # 포맷된 타임스탬프 반환
+                'is_drunk_driving': is_drunk_driving #음주운전 상태 변수
+            }) 
         else:
             return JsonResponse({'status': 'failure', 'message': 'No data available'}, status=404)
     
