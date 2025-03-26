@@ -79,6 +79,7 @@ def get_latest_sensor_data(request):
             # 자이로 카운트 및 시작 시간 초기화
             gyro_count = cache.get(latest_data.device + '_gyro_count', 0)
             start_time = cache.get(latest_data.device + '_gyro_start_time', None)
+            alert_sent = cache.get(latest_data.device + '_drunk_driving_alerted', False)
 
             # 현재 시간
             current_time = timezone.now()
@@ -104,14 +105,15 @@ def get_latest_sensor_data(request):
                 print(f"Elapsed time: {elapsed_time}")  # 디버깅 로그 추가
                 if elapsed_time >= 20:
                     # 20초가 경과했으면 카운트 확인
-                    if gyro_count >= 10 and not cache.get(latest_data.device + '_drunk_driving_alerted', False):
+                    if gyro_count >= 10 and not alert_sent:  # alert_sent 체크 (수정된 부분)
                         print("Sending True to ESP32")  # ESP32로 전송하는 로직
                         cache.set(latest_data.device + '_drunk_driving_alerted', True, timeout=60)  # 60초 동안 중복 전송 방지
+                    else:
+                        print("Not sending True to ESP32, count is less than 10 or already sent")  # 카운트가 10 미만일 경우
 
                     # 카운트와 시작 시간 초기화
                     cache.delete(latest_data.device + '_gyro_count')
                     cache.delete(latest_data.device + '_gyro_start_time')
-
             # JSON 응답 반환
             return JsonResponse({
                 'status': 'success',
