@@ -1,4 +1,3 @@
-#views.py
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.middleware.csrf import get_token
@@ -7,9 +6,9 @@ from django.views.decorators.http import require_http_methods
 import json
 from .models import SensorData  # SensorData 모델 임포트
 from django.utils import timezone
-from datetime import timedelta
 from django.core.cache import cache
 import pytz
+
 # CSRF 토큰을 반환하는 뷰
 @csrf_exempt
 def get_csrf_token(request):
@@ -47,10 +46,7 @@ def receive_sensor_data(request):
 
     return JsonResponse({'status': 'failure', 'message': 'Method not allowed'}, status=405)
 
-
-#AJAX
-from django.core.cache import cache
-
+# 최신 센서 데이터를 반환하는 뷰
 @csrf_exempt
 def get_latest_sensor_data(request):
     if request.method == 'GET':
@@ -59,7 +55,7 @@ def get_latest_sensor_data(request):
         if latest_data:
             # 한국 시간대 설정
             kst = pytz.timezone('Asia/Seoul')
-            timestamp = latest_data.timestamp.astimezone(kst).strftime('%H:%M:%S')  # 24시간 형식
+            timestamp = latest_data.timestamp.astimezone(kst).strftime('%H:%M:%S')
             
             # 알콜 센서 값 체크
             alcohol_threshold = 100
@@ -80,69 +76,61 @@ def get_latest_sensor_data(request):
             # 상태를 캐시에 저장
             cache.set(latest_data.device + '_motor_speed_condition', motor_speed_condition)
 
-            # 알콜 감지 시 자이로 센서 카운트 증가
-            gyro_threshold = 100
-            start_time = latest_data.timestamp - timedelta(seconds=20)
-            gyro_count = cache.get(latest_data.device + '_gyro_count', 0)  # 기본값 0
+            # 자이로 카운트 및 시작 시간 초기화
+            gyro_count = cache.get(latest_data.device + '_gyro_count', 0)
+            start_time = cache.get(latest_data.device + '_gyro_start_time', None)
 
-            if drunk_driving_condition == 'Alcohol detection':
-                # 자이로 센서 카운트 증가
-                if latest_data.gyro >= gyro_threshold:
-                    gyro_count += 1  # 카운트 증가
+            # 현재 시간
+            current_time = timezone.now()
 
-                # 카운트를 캐시에 저장
-                cache.set(latest_data.device + '_gyro_count', gyro_count, timeout=20)  # 20초 유지
+            # 알콜 감지 상태 관리
+            if alcohol_detected:
+                cache.set(latest_data.device + '_drunk_driving_condition', 'Alcohol detection')
 
-                # 자이로 센서 조건 확인
-                is_drunk_driving = gyro_count >= 10  # 10회 이상이면 음주운전 상태로 판단
+            # 자이로 값 체크 및 카운트 증가 (알콜 감지 상태일 때만)
+            if drunk_driving_condition == 'Alcohol detection' and latest_data.gyro >= 100:  # 알콜 감지 상태일 때
+                gyro_count += 1  # 카운트 증가
+                print(f"Gyro count increased: {gyro_count}")  # 디버깅 로그 추가
+                cache.set(latest_data.device + '_gyro_count', gyro_count, timeout=20)  # 카운트를 캐시에 저장 (20초 유지)
 
-                # ESP32로 전송하는 로직 (여기에 예시로 print를 사용, 실제로는 ESP32로 전송하는 코드로 대체)
-                if is_drunk_driving:
-                    if not cache.get(latest_data.device + '_drunk_driving_alerted', False):
-                        print("Sending True to ESP32")  # 실제 ESP32로 전송하는 로직으로 변경 필요
+                # 시작 시간이 없으면 현재 시간으로 설정
+                if start_time is None:
+                    print("Setting start time")  # 디버깅 로그 추가
+                    cache.set(latest_data.device + '_gyro_start_time', current_time, timeout=20)
+
+            # 20초가 경과했는지 확인
+            if start_time is not None:
+                elapsed_time = (current_time - start_time).total_seconds()
+                print(f"Elapsed time: {elapsed_time}")  # 디버깅 로그 추가
+                if elapsed_time >= 20:
+                    # 20초가 경과했으면 카운트 확인
+                    if gyro_count >= 10 and not cache.get(latest_data.device + '_drunk_driving_alerted', False):
+                        print("Sending True to ESP32")  # ESP32로 전송하는 로직
                         cache.set(latest_data.device + '_drunk_driving_alerted', True, timeout=60)  # 60초 동안 중복 전송 방지
 
-            else:
-                # 알콜 감지되지 않으면 자이로 카운트 초기화
-                cache.delete(latest_data.device + '_gyro_count')
-                cache.delete(latest_data.device + '_drunk_driving_alerted')
+                    # 카운트와 시작 시간 초기화
+                    cache.delete(latest_data.device + '_gyro_count')
+                    cache.delete(latest_data.device + '_gyro_start_time')
 
+            # JSON 응답 반환
             return JsonResponse({
                 'status': 'success',
                 'alcohol': latest_data.alcohol,
                 'gyro': latest_data.gyro,
                 'motor_speed': latest_data.motor_speed,
-                'gyro_count': gyro_count,  # gyro_count 값 추가
+                'gyro_count': gyro_count,
                 'timestamp': timestamp,
-                'condition': drunk_driving_condition,  # Condition 추가
-                'motor_speed_condition': motor_speed_condition,  # 모터 스피드 상태 추가
-                'is_drunk_driving': is_drunk_driving if drunk_driving_condition == 'suspected drunk driving' else False
+                'condition': drunk_driving_condition,
+                'motor_speed_condition': motor_speed_condition,
+                'is_drunk_driving': gyro_count >= 10  # 카운트가 10 이상일 때 True
             }) 
         else:
             return JsonResponse({'status': 'failure', 'message': 'No data available'}, status=404)
     
     return JsonResponse({'status': 'failure', 'message': 'Method not allowed'}, status=405)
 
-# 최신 센서 데이터를 반환하는 뷰
-@csrf_exempt
-@require_http_methods(["POST"]) 
-def get_sensor_data(request):
-    if request.method == 'GET':
-        latest_data = SensorData.objects.filter(is_latest=True).order_by('-timestamp').first()
-        
-        if latest_data:
-            return JsonResponse({
-                'status': 'success',
-                'alcohol': latest_data.alcohol,
-                'gyro': latest_data.gyro,
-                'motor_speed': latest_data.motor_speed,
-                'device': latest_data.device,
-                'timestamp': str(latest_data.timestamp)
-            })
-        else:
-            return JsonResponse({'status': 'failure', 'message': 'No data available'}, status=404)
-    
-    return JsonResponse({'status': 'failure', 'message': 'Method not allowed'}, status=405)
+
+
 # 홈 페이지 뷰
 def home(request):
     return HttpResponse("Hello from the main page!")

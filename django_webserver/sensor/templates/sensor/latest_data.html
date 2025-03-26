@@ -116,29 +116,10 @@
                 data: { labels: [], datasets: [{ label, data: [], borderColor, backgroundColor }] },
                 options: { 
                     scales: { 
-                        x: { 
-                            display: false, // X축 숨기기
-                               
-                        }, 
-                        y: { 
-                            beginAtZero: true,
-                            ticks : {
-                                color : 'rgba(255, 255, 255, 1)',
-                            },
-                            grid: { 
-                                color: 'rgba(255, 255, 255, 1)' 
-                            }, 
-                        }
+                        x: { display: false },
+                        y: { beginAtZero: true, ticks: { color: 'rgba(255, 255, 255, 1)' }, grid: { color: 'rgba(255, 255, 255, 1)' } },
                     },
-                    plugins: {
-                        legend: {
-                            display : false,
-                            labels: {
-                                color: borderColor 
-                            }
-                        }
-                        
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
@@ -147,6 +128,7 @@
         const gyroChart = createChart(document.getElementById('gyroChart').getContext('2d'), 'Gyroscope', 'rgb(20, 161, 255)', 'rgba(54, 162, 235, 0.2)');
         const motorSpeedChart = createChart(document.getElementById('motorSpeedChart').getContext('2d'), 'Motor Speed', '#ffcc29', 'rgba(255, 206, 86, 0.2)');
 
+        
         function updateCharts() {
             fetch('/sensor/get-latest-data/')
                 .then(response => response.json())
@@ -156,17 +138,17 @@
                         document.getElementById('gyroValue').innerText = data.gyro;
                         document.getElementById('motorSpeedValue').innerText = data.motor_speed;
         
-                        // Condition 업데이트
-                        document.getElementById('alcoholCondition').innerText = data.condition; // 알콜 조건 업데이트
-                        document.getElementById('motorSpeedCondition').innerText = data.motor_speed_condition; // 모터 스피드 조건 업데이트
+                        document.getElementById('alcoholCondition').innerText = data.condition;
+                        document.getElementById('motorSpeedCondition').innerText = data.motor_speed_condition;
         
-                        // gyro_count 값 업데이트
-                        document.getElementById('gyroCount').innerText = data.gyro_count; // 카운트 업데이트
+                        // 서버에서 Threshold Count 가져오기
+                        document.getElementById('gyroCount').innerText = data.gyro_count || 0; // 초기화된 값이 없으면 0
         
                         document.getElementById('alcoholTimestamp').innerText = data.timestamp;
                         document.getElementById('gyroTimestamp').innerText = data.timestamp;
                         document.getElementById('motorSpeedTimestamp').innerText = data.timestamp;
         
+                        // 차트 업데이트
                         const time = new Date(data.timestamp).toLocaleTimeString();
                         alcoholChart.data.labels.push(time);
                         alcoholChart.data.datasets[0].data.push(data.alcohol);
@@ -183,13 +165,10 @@
                 })
                 .catch(error => console.error('Error fetching data:', error));
         }
+
+        // 페이지가 로드될 때 값 초기화
         
         // 1초마다 호출하여 실시간으로 업데이트
-        setInterval(updateCharts, 1000);
-        
-        
-        
-
         setInterval(updateCharts, 1000);
     </script>
 </body>

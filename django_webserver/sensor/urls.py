@@ -8,4 +8,5 @@ urlpatterns = [
     path('latest/', views.display_latest_data, name='display_latest_data'),
     path('get-csrf-token/', views.get_csrf_token, name='get_csrf_token'),  # CSRF 토큰
     path('get-latest-data/', views.get_latest_sensor_data, name='get_latest_sensor_data'), # 센서 데이터 요청을 처리하는 경로
+    #path('sensor/set-condition-normal/', views.set_condition_normal, name='set_condition_normal'),
 ]
