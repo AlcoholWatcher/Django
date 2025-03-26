@@ -38,12 +38,14 @@
             min-width: 0; /* 최소 너비를 0으로 설정하여 최대 공간 사용 */
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
-            padding: 30px; /* 패딩 증가 */
+            padding-bottom : 30px; /* 패딩 증가 */
+            padding-left : 15px;
+            padding-right : 15px;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             text-align: center;
             transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-            height: 500px; /* 세로 크기 증가 */
+            height: 550px; /* 세로 크기 증가 */
             overflow: hidden; /* 내부 내용이 넘칠 경우 숨김 처리 */
         }
         .sensor-data:hover {
@@ -83,23 +85,26 @@
 
     <div class="sensor-container">
         <div class="sensor-data">
-            <h2 style="color: #ff6384;">Alcohol Level</h2>
-            <p>Value: <span id="alcoholValue" style="color: #ff6384; font-size: 1.8rem;">--</span></p>
-            <p>Timestamp: <span id="alcoholTimestamp">--</span></p>
+            <h2 style="color:rgb(255, 63, 105);">Alcohol Level</h2>
+            <p>Value : <span id="alcoholValue" style="color: rgb(255, 63, 105); font-size: 1.8rem;">--</span></p>
+            <p>Condition : <span id="alcoholCondition" style="color: rgb(255, 63, 105); font-size: 1.8rem;">Normal</span></p> <!-- Condition 추가 -->
+            <p>Timestamp : <span id="alcoholTimestamp">--</span></p>
             <canvas id="alcoholChart"></canvas>
         </div>
 
         <div class="sensor-data">
-            <h2 style="color: #36a2eb;">Gyroscope</h2>
-            <p>Value: <span id="gyroValue" style="color: #36a2eb; font-size: 1.8rem;">--</span></p>
-            <p>Timestamp: <span id="gyroTimestamp">--</span></p>
+            <h2 style="color:rgb(20, 161, 255);">Gyroscope</h2>
+            <p>Value : <span id="gyroValue" style="color: rgb(20, 161, 255); font-size: 1.8rem;">--</span></p>
+            <p>Threshold count : <span id="gyroCount" style="color: rgb(20, 161, 255); font-size: 1.8rem;">--</span></p> <!-- 카운트 추가 -->
+            <p>Timestamp : <span id="gyroTimestamp">--</span></p>
             <canvas id="gyroChart"></canvas>
         </div>
 
         <div class="sensor-data">
             <h2 style="color: #ffcc29;">Motor Speed</h2>
-            <p>Value: <span id="motorSpeedValue" style="color: #ffcc29; font-size: 1.8rem;">--</span></p>
-            <p>Timestamp: <span id="motorSpeedTimestamp">--</span></p>
+            <p>Value : <span id="motorSpeedValue" style="color: #ffcc29; font-size: 1.8rem;">--</span></p>
+            <p>Condition : <span id="motorSpeedCondition" style="color: #ffcc29; font-size: 1.8rem;">Stop</span></p> <!-- Condition 추가 -->
+            <p>Timestamp : <span id="motorSpeedTimestamp">--</span></p>
             <canvas id="motorSpeedChart"></canvas>
         </div>
     </div>
@@ -113,13 +118,16 @@
                     scales: { 
                         x: { 
                             display: false, // X축 숨기기
+                               
                         }, 
                         y: { 
                             beginAtZero: true,
                             ticks : {
-                                color : 'rgba(255, 255, 255, 0.8)',
+                                color : 'rgba(255, 255, 255, 1)',
                             },
-                            grid: { color: 'rgba(255, 255, 255, 0.8)' } 
+                            grid: { 
+                                color: 'rgba(255, 255, 255, 1)' 
+                            }, 
                         }
                     },
                     plugins: {
@@ -135,8 +143,8 @@
             });
         }
 
-        const alcoholChart = createChart(document.getElementById('alcoholChart').getContext('2d'), 'Alcohol Level', '#ff6384', 'rgba(255, 99, 132, 0.2)');
-        const gyroChart = createChart(document.getElementById('gyroChart').getContext('2d'), 'Gyroscope', '#36a2eb', 'rgba(54, 162, 235, 0.2)');
+        const alcoholChart = createChart(document.getElementById('alcoholChart').getContext('2d'), 'Alcohol Level', 'rgb(255, 63, 105)', 'rgba(255, 99, 132, 0.2)');
+        const gyroChart = createChart(document.getElementById('gyroChart').getContext('2d'), 'Gyroscope', 'rgb(20, 161, 255)', 'rgba(54, 162, 235, 0.2)');
         const motorSpeedChart = createChart(document.getElementById('motorSpeedChart').getContext('2d'), 'Motor Speed', '#ffcc29', 'rgba(255, 206, 86, 0.2)');
 
         function updateCharts() {
@@ -147,20 +155,27 @@
                         document.getElementById('alcoholValue').innerText = data.alcohol;
                         document.getElementById('gyroValue').innerText = data.gyro;
                         document.getElementById('motorSpeedValue').innerText = data.motor_speed;
-
+        
+                        // Condition 업데이트
+                        document.getElementById('alcoholCondition').innerText = data.condition; // 알콜 조건 업데이트
+                        document.getElementById('motorSpeedCondition').innerText = data.motor_speed_condition; // 모터 스피드 조건 업데이트
+        
+                        // gyro_count 값 업데이트
+                        document.getElementById('gyroCount').innerText = data.gyro_count; // 카운트 업데이트
+        
                         document.getElementById('alcoholTimestamp').innerText = data.timestamp;
                         document.getElementById('gyroTimestamp').innerText = data.timestamp;
                         document.getElementById('motorSpeedTimestamp').innerText = data.timestamp;
-
+        
                         const time = new Date(data.timestamp).toLocaleTimeString();
                         alcoholChart.data.labels.push(time);
                         alcoholChart.data.datasets[0].data.push(data.alcohol);
                         alcoholChart.update();
-
+        
                         gyroChart.data.labels.push(time);
                         gyroChart.data.datasets[0].data.push(data.gyro);
                         gyroChart.update();
-
+        
                         motorSpeedChart.data.labels.push(time);
                         motorSpeedChart.data.datasets[0].data.push(data.motor_speed);
                         motorSpeedChart.update();
@@ -168,6 +183,12 @@
                 })
                 .catch(error => console.error('Error fetching data:', error));
         }
+        
+        // 1초마다 호출하여 실시간으로 업데이트
+        setInterval(updateCharts, 1000);
+        
+        
+        
 
         setInterval(updateCharts, 1000);
     </script>
